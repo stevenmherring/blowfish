@@ -1,0 +1,38 @@
+Steven Herring 109569390 - CSE 307 HW 1
+
+1.1 
+A: Lexical error in Java
+int 5x = 4; // the lever catches this as variables in Java may not begin with a number
+B: no ; to end a statement, a single String spanning multiple lines in source or using a Static class function via object.
+C: Using an undeclared identifier
+D: Attempting to access an array index that is out of bounds
+E: Using a method name as a variable
+
+1.4
+In C, this program overflowed immediately…I addressed that first and we never track the result of the division in which we mod, in the best cases when mod = 0 we can’t retrieve the division result to return. I made the following changes, comments to explain
+———————Code———————
+#include <stdio.h>
+int main() {
+    unsigned int i, j;
+    scanf("%d", &i);
+    scanf("%d", &j);
+    while (i != j) {
+        if (i > j) {
+            unsigned int t = i / j;  //store the result of divided the two
+            i = i % j;
+            if(i == 0){ //if i % j is zero, then the GCD is t
+                i = t;
+                break;
+            }
+            i = t; //set i back to t and start over
+        } else {
+            j = j % i;
+        }
+    }
+    printf("Result: %d\n", i);
+}
+————End of Code————
+I don’t believe this method is ever faster, Division can not be parallelized at a hardware level.
+
+1.8
+Make uses file modification times recorded by the users operating system. If some file changes at all then recompilation of all files which depend on the changed occurs. It works, but if you simply change comments or move the file to a new drive, recompilation will occur because Make works independent of the compiler and can not deduce language semantics. Make may fail to recompile if there is an error in the file dependency tree within the make file.
