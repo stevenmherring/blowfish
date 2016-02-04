@@ -1,0 +1,32 @@
+manual pages, separated into sections
+section 1: typical user commands
+section 2: system calls (functions executing inside the OS kernel)
+section 3: library calls (functions running in the same context a the running application/process)
+section 4 & 5: formats and configuration
+section 8: privileged sysadmin commands
+
+convention: use ‘$’ to indicate a command line prompt
+
+pwd
+ls
+
+
+Quiz questions
+
+5. diff between syscalll and lib call…read above
+	(sys calls are slower due to trap/interrupting the OS
+
+6. what does stat(2) sys call do
+7. gdb foo core 
+gdb: gnu debugger, name of cmd
+foo: name of executable to debug
+core: previously produced (“dumped”) memory image of ‘foo’ program
+8. gcc -W main.c -o bar -lwrap
+gcc: gnu c compiler
+-W: extra warning checker
+main.c:  source file to compile
+-o: option output binary
+bar: output binary name
+-lwrap: 
+
+recommend enabling as many warnings as possible: gcc -Wall

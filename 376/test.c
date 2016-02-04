@@ -3,11 +3,11 @@
 #include <stdlib.h>
 
 int main(){
-    int i;
-    scanf("%d", &i);
-    char* str = malloc(sizeof(char) * i);
-    scanf("%s", str);
-  //str = "Hello World";
-  printf("%lu\n", sizeof(str));
-    free(str);
+    char *str = "Hello World";
+    str = malloc(11);
+    str = "Hello World";
+    
+    
+    fprintf(stderr, "%s\n", str);
+    
 }

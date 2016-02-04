@@ -32,7 +32,7 @@ int main() {
     printf("Result: %d\n", i);
 }
 ————End of Code————
-I don’t believe this method is ever faster, Division can not be parallelized at a hardware level.
+For small numbers I imagine the subtraction method is faster due to parallelization at the hardware level, but for large numbers you can wind up doing far more subtractions than divisions, leading to run time taking far too long
 
 1.8
 Make uses file modification times recorded by the users operating system. If some file changes at all then recompilation of all files which depend on the changed occurs. It works, but if you simply change comments or move the file to a new drive, recompilation will occur because Make works independent of the compiler and can not deduce language semantics. Make may fail to recompile if there is an error in the file dependency tree within the make file.

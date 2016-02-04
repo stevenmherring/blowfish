@@ -1,0 +1,58 @@
+1. “CPP” - C Pre-processor
+2. what’s “as”? - 
+3. what’s “ld”?
+
+The above are stages of the C comps;er. There are 4 stages:
+
+1. pre-processor: cpp
+looks for #include, #define, #ifdef
+…macros - basic text replacements
+
+2. C compiler: com
+performs parsing and syntax checking on the code. may also perform some optimizations produces symbolic assembly code for the current architectures being compile for.
+
+Examples:
+MOV R1 R2
+INC R3
+
+3. Assembler: as
+
+input: symbolic assembly code
+output: object code
+
+also lots of optimizations
+
+4. linker: ld
+
+input: assemblers object code
+output: fully ready executable
+
+- combine several object files together, to produce appropriate executable format; setting entry point to start executing.
+- look for any libraries whose code needs to be linked as well
+
+- most important: resolved all symbols between object files and libraries, ensuring that every symbols (variables, function) has exactly one definition, and the locations for the symbols (or code for function) is known.
+
+GCC can control which stage(s) to run using CLI switches.
+
+——————————
+GDB
+
+in order to symbolically debug a program, need to inject actual src code into the executable and correlate the object coed w/ specific line numbers.
+
+#normal compile
+$gcc -o myprog main.c
+
+#often we enable optimizations -o1 -o2….-o6
+gcc —O2 o myprog main.c
+
+#tobe able to debug a binary using gdb or any other symbolic debugger
+# add -g flag
+$gcc - g -o myprog main.c
+
+#now you can debug program using gdb
+# when done, you can remove (strip) these extra symbols from executable.
+$strip myprog
+
+#caution: avoid -g and -O2, n/c optimization may eliminate or reshuffle some source doe, making single stepping inside gdb harder. so, if using -g, best to remove -O2
+
+
