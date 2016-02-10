@@ -1,3 +1,6 @@
+#Steven Herring
+#109569390
+#CSE 307 HW2 - Iterative solution
 import sys, getopt, os
 
 def main(argv):
@@ -11,6 +14,7 @@ def main(argv):
     for opt, arg in opts:
         if opt in ("-i", "--ifile"):
             inputFile = arg
+    inputFile = argv[0]
     #open file
     try:
         with open(inputFile, 'r') as fp:
@@ -29,14 +33,17 @@ def main(argv):
     #tok - current tokens
     #r - refill amount
     #fun values in separate array
-    n = int(content[0])
-    c = int(content[1])
-    r = int(content[2])
+    n = int(content[0][4])
+    c = int(content[1][4])
+    r = int(content[2][7])
     t = c
     f = []
     total = 0
     for i in range(0, n):
-        f.append(int(content[i+3]))
+        if(content[i+3][6] == '-'):
+            f.append(int(content[i+3][7]) * -1)
+        else:
+            f.append(int(content[i+3][6]))
 
     #process the algorithm
     for i in range(0, n):
@@ -65,7 +72,7 @@ def main(argv):
                 t -= 1
         t += r #replenish tokens at the end of current game
     #loop ends
-    print(total)
+    sys.stdout.write("total_fun(%d).\n" % (total))
 
 
 if __name__ == "__main__":
