@@ -65,10 +65,11 @@ int main(int argc, char **argv)
         break;
     }
   }//while
+  //if the user doesnt have 2 additional arguments (infile/outfile)
   if((optind + 2) > argc) {
     print_help(argv[0]);
     exit(1);
-  } else if(err) {
+  } else if(err) { //if an error was set during getopts (the case of a bad flag)
     print_help(argv[0]);
     exit(1);
   }//error
