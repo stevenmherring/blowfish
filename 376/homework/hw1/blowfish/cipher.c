@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include "blowfish.h"
 
 /* Pre-Defined strings - Usage, error messages, etc. */
@@ -22,7 +23,7 @@ int main(int argc, char **argv)
   int dflag = 0, eflag = 0, vflag = 0, hflag = 0;
   char infile[64], outfile[64];
   char std_def[] = "-";
-  FILE *fin, *fout;
+  int fin, fout;
 
   unsigned char from[128], to[128];
   int len = 128;
@@ -32,7 +33,6 @@ int main(int argc, char **argv)
 
   /* a temp buffer to read user input (the user's password) */
   unsigned char temp_buf[16];
-  char* temp_pass;
 
   /* don't worry about these two: just define/use them */
   int n = 0;			/* internal blowfish variables */
@@ -57,7 +57,8 @@ int main(int argc, char **argv)
         break;
       case 'p':
         //strcpy(temp_buf, optarg); //TODO: is strcpy the best choice????
-        temp_pass = getpass(PROMPT_PASS);
+        //we need to cast to char * since blowfish using unsigned char[]
+        strcpy((char *)temp_buf, optarg);
         break;
       case '?':
         err = 1;
@@ -77,20 +78,25 @@ int main(int argc, char **argv)
   if(strcmp(infile, std_def) != 0) {
     //stdin will not be used
     //perhaps we dup to save the desc. then reassign.
-    close(STDIN_FILENO);
-    fin = fopen(infile, "r");
-    //TODO: confirm fin is valid.
-    dup(fileno(fin));
-
+    if((fin = open(infile, O_RDONLY)) >= 0) {
+      //fin returned correctly, close current stdin, reassign to fin
+      close(STDIN_FILENO);
+      dup(fin);
+    } else {
+      fprintf(stdout, "Error: Bad input file name.\n");
+      exit(1);
+    }
   }
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
-    close(STDOUT_FILENO);
-    fout = fopen(outfile, "w");
-    //TODO: confirm fout is valid.
-    dup(fileno(fout));
-    fprintf(stdout, "What");
+    if((fout = open(outfile, O_WRONLY)) >= 0) {
+      close(STDOUT_FILENO);
+      dup(fout);
+    } else {
+        fprintf(stdout, "Error: Bad output file name.\n");
+        exit(1);
+    }
   }
 
 
