@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <unistd.h>
+#include <sys/stat.h>
 #include <fcntl.h>
 #include "blowfish.h"
 
@@ -20,10 +21,11 @@ int main(int argc, char **argv)
   extern char *optarg;
   extern int optind;
   int c, err = 0;
-  int dflag = 0, eflag = 0, vflag = 0, hflag = 0;
+  int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 1;
   char infile[64], outfile[64];
   char std_def[] = "-";
   int fin, fout;
+  struct stat stin, stout;
 
   unsigned char from[128], to[128];
   int len = 128;
@@ -58,6 +60,7 @@ int main(int argc, char **argv)
       case 'p':
         //strcpy(temp_buf, optarg); //TODO: is strcpy the best choice????
         //we need to cast to char * since blowfish using unsigned char[]
+        pflag = 0;
         strcpy((char *)temp_buf, optarg);
         break;
       case '?':
@@ -74,8 +77,20 @@ int main(int argc, char **argv)
     exit(1);
   }//error
   /* Copy the argument file names into designated locations.*/
+  if(pflag) {
+    char* temp_pass;
+    temp_pass = getpass(PROMPT_PASS);
+    strcpy((char *)temp_buf, temp_pass);
+  }
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
+  stat(infile, &stin);
+  stat(outfile, &stout);
+
+  if(stin.st_dev == stout.st_dev && stin.st_ino == stout.st_ino) {
+    fprintf(stderr, "Error: Input and Output files may not be the same\n");
+    exit(1);
+  }
   if(strcmp(infile, std_def) != 0) {
     //stdin will not be used
     //perhaps we dup to save the desc. then reassign.
@@ -84,18 +99,18 @@ int main(int argc, char **argv)
       close(STDIN_FILENO);
       dup(fin);
     } else {
-      fprintf(stdout, "Error: Bad input file name.\n");
+      fprintf(stderr, "Error: Bad input file name.\n");
       exit(1);
     }
   }
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
-    if((fout = open(outfile, O_WRONLY)) >= 0) {
+    if((fout = open(outfile, O_RDWR | O_CREAT, 0666)) >= 0) {
       close(STDOUT_FILENO);
       dup(fout);
     } else {
-        fprintf(stdout, "Error: Bad output file name.\n");
+        fprintf(stderr, "Error: Bad output file name.\n");
         exit(1);
     }
   }
