@@ -1,7 +1,0 @@
-input:
-
-N - Number of games to play; 4 <= N <= 10
-T - Max # of tokens; 3 <= T <= 10
-K - # of tokens given after each game; 0 <= K <= T
-i - game #; 1 <= i <= N
-Vi - fun value; -10 <= Vi <= 10
