@@ -201,15 +201,9 @@ int main(int argc, char **argv)
   //policy A: if outfile exists, print an error and refuse to overwrite.
   //policy B: like /bin/cp, can overwrite it.
 
-
-
   /*
    * This is how you encrypt an input char* buffer "from", of length "len"
    * onto output buffer "to", using key "key".  Jyst pass "iv" and "&n" as
    * shown, and don't forget to actually tell the function to BF_ENCRYPT.
    */
-
-
-  /* Decrypting is the same: just pass BF_DECRYPT instead */
-
 }
