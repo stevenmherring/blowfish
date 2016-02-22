@@ -28,19 +28,30 @@ void print_help(char* name) {
 int fileCheck(char* file1, char* file2) {
   struct stat f1, f2;
 
-  stat(file1, &f1);
-  stat(file2, &f2);
-  if(access(file1, F_OK ) == -1) {
+
+  if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
       fprintf(stderr, "Error: Input file does not exist");
+      return 1;
   }
   //case where file2 doesn't exist yet, we just need to know that file1 is a regular file
+  if(stat(file2, &f2) != 0) {
+    if((S_ISREG(f1.st_mode) == 0)) {
+      fprintf(stderr, "Error: I111231nput file does not exist");
+      return 1;
+    } else {
+      return 0;
+    }
+  }
+
   //if((access(file2,F_OK) == -1) && (f1.st_mode & S_IFMT) == S_IFREG) {
   //  fprintf(stdout, "Error: 11111");
     //return 1;
   //}
+
   //error check, confirm that files are unique and not symlinks of another file
   //confirm file1 (input file is infact a file)
-  if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (f1.st_mode & S_IFMT) != S_IFREG) {
+  if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
+    fprintf(stderr, "Error: Input file does not exist22");
     return 1;
   } else {
     return 0;
@@ -57,7 +68,6 @@ param5 - char*: password
 return - int: 0 for success, ~0 for failure
 */
 int performCipher(unsigned char* buffer, int flag, int pageSize, BF_KEY key, unsigned char* password) {
-  unsigned char* cipherBuffer;
   unsigned char iv[8];		/* Initialization Vector */
   int n = 0;			/* internal blowfish variables */
   int r;
@@ -65,21 +75,21 @@ int performCipher(unsigned char* buffer, int flag, int pageSize, BF_KEY key, uns
   /* fill the IV with zeros (or any other fixed data) */
   memset(iv, 0, 8);
 
-  if((cipherBuffer = malloc(r)) == NULL) {
-    fprintf(stderr, "Error: Malloc Failure.");
-    exit(1);
-    return 1;
-  }//bad malloc
-  if((buffer = malloc(pageSize)) == NULL) {
-    fprintf(stderr, "Error: Malloc Failure.");
-    free(cipherBuffer);
-    exit(1);
+  if((buffer = calloc(1, pageSize)) == NULL) {
+    fprintf(stderr, "Error: Calloc Failure.");
     return 1;
   }
 
   /* call this function once to setup the cipher key */
   BF_set_key(&key, sizeof(password), password);
   while((r = read(STDIN_FILENO, buffer, pageSize)) > 0) {
+    unsigned char* cipherBuffer;
+    if((cipherBuffer = calloc(1, r)) == NULL) {
+      fprintf(stderr, "Error: Calloc Failure.");
+      free(buffer);
+      return 1;
+    }//bad malloc
+
     if(flag == 1) {
         BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_ENCRYPT);
     } else {
@@ -88,8 +98,8 @@ int performCipher(unsigned char* buffer, int flag, int pageSize, BF_KEY key, uns
     //finally
     write(STDOUT_FILENO, cipherBuffer, r); //error check this hard
     free(cipherBuffer);
-    free(buffer);
   }//white read success
+  free(buffer);
   return 0;
 }//performCipher
 
@@ -108,6 +118,7 @@ int main(int argc, char **argv)
 
   /* define a structure to hold the key */
   BF_KEY key;
+  printf("%d\n", getpagesize());
 
   /* a temp buffer to read user input (the user's password) */
   unsigned char temp_buf[16];
@@ -147,6 +158,7 @@ int main(int argc, char **argv)
     char* temp_pass;
     temp_pass = getpass(PROMPT_PASS);
     strcpy((char *)temp_buf, temp_pass);
+    free(temp_pass);
   }
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
@@ -188,6 +200,8 @@ int main(int argc, char **argv)
       //if not zero, then an error. handle em
   }
   /* successfully run */
+  close(STDIN_FILENO);
+  close(STDOUT_FILENO);
   exit(0);
 
   //error checking, ENOMEM, EIO,
@@ -201,9 +215,15 @@ int main(int argc, char **argv)
   //policy A: if outfile exists, print an error and refuse to overwrite.
   //policy B: like /bin/cp, can overwrite it.
 
+
+
   /*
    * This is how you encrypt an input char* buffer "from", of length "len"
    * onto output buffer "to", using key "key".  Jyst pass "iv" and "&n" as
    * shown, and don't forget to actually tell the function to BF_ENCRYPT.
    */
+
+
+  /* Decrypting is the same: just pass BF_DECRYPT instead */
+
 }
