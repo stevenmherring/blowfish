@@ -5,7 +5,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include "blowfish.h"
-
+#include <errno.h>
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
 static char PROMPT_PASS[] = "Please enter a password: \n";
@@ -27,8 +27,6 @@ void print_help(char* name) {
 */
 int fileCheck(char* file1, char* file2) {
   struct stat f1, f2;
-
-
   if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
       fprintf(stderr, "Error: Input file does not exist");
       return 1;
@@ -67,61 +65,78 @@ param4 - BF_KEY: key
 param5 - char*: password
 return - int: 0 for success, ~0 for failure
 */
-int performCipher(unsigned char* buffer, int flag, int pageSize, BF_KEY key, unsigned char* password) {
+int performCipher(int flag, int pageSize, unsigned char* password, int inFile, int outFile) {
   unsigned char iv[8];		/* Initialization Vector */
   int n = 0;			/* internal blowfish variables */
-  int r;
-
+  int r = 0, err = 0;
+  void* buffer = NULL;
+  void* cipherBuffer = NULL;
+  /* define a structure to hold the key */
+  BF_KEY key;
   /* fill the IV with zeros (or any other fixed data) */
   memset(iv, 0, 8);
-
-  if((buffer = calloc(1, pageSize)) == NULL) {
+  if((buffer = calloc(1, pageSize))== NULL) {
     fprintf(stderr, "Error: Calloc Failure.");
-    return 1;
+    err = errno;
+    goto clean;
   }
 
   /* call this function once to setup the cipher key */
+  if(password == NULL) {
+    err = 1;
+    goto clean;
+  }
   BF_set_key(&key, sizeof(password), password);
-  while((r = read(STDIN_FILENO, buffer, pageSize)) > 0) {
-    unsigned char* cipherBuffer;
+  while((r = read(inFile, buffer, pageSize)) > 0) {
     if((cipherBuffer = calloc(1, r)) == NULL) {
       fprintf(stderr, "Error: Calloc Failure.");
       free(buffer);
-      return 1;
-    }//bad malloc
+      free(cipherBuffer);
+      buffer = NULL;
+      err = errno;
+      goto clean;
+    }
+    else {//bad malloc
 
-    if(flag == 1) {
-        BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_ENCRYPT);
-    } else {
-        BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_DECRYPT);
+      if(flag == 1) {
+          fprintf(stderr, "fuck off you cunt\n");
+          BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_ENCRYPT);
+      } else {
+          BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_DECRYPT);
+      }
     }
     //finally
-    write(STDOUT_FILENO, cipherBuffer, r); //error check this hard
+    write(outFile, cipherBuffer, r); //error check this hard
     free(cipherBuffer);
+    cipherBuffer = NULL;
   }//white read success
-  free(buffer);
-  return 0;
+  clean:
+    if(buffer) {
+      free(buffer);
+    }
+    if(cipherBuffer) {
+      free(cipherBuffer);
+    }
+    return err;
 }//performCipher
 
 int main(int argc, char **argv)
 {
-
   extern char *optarg;
   extern int optind;
   int c, err = 0;
   int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 1;
   char infile[64], outfile[64];
-  char tempFileName[] = "CipherTemporary.txt";
+  //char tempFileName[] = "CipherTemporary.txt";
   char std_def[] = "-";
-  int fin, fout;
-  void* buff;
+  int fin = 0, fout = 0;
+  int err_code = 0;
+  char* temp_pass = NULL;
 
-  /* define a structure to hold the key */
-  BF_KEY key;
   printf("%d\n", getpagesize());
 
   /* a temp buffer to read user input (the user's password) */
-  unsigned char temp_buf[16];
+  unsigned char* temp_buf;
 
   while((c = getopt(argc, argv, "devhp:")) != -1) {
     switch(c) {
@@ -141,6 +156,7 @@ int main(int argc, char **argv)
         //strcpy(temp_buf, optarg); //TODO: is strcpy the best choice????
         //we need to cast to char * since blowfish using unsigned char[]
         pflag = 0;
+        temp_buf = calloc(1, sizeof(optarg));
         strcpy((char *)temp_buf, optarg);
         break;
       case '?':
@@ -155,54 +171,61 @@ int main(int argc, char **argv)
   }
   /* Copy the argument file names into designated locations.*/
   if(pflag) {
-    char* temp_pass;
     temp_pass = getpass(PROMPT_PASS);
     strcpy((char *)temp_buf, temp_pass);
-    free(temp_pass);
   }
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
 
   if(fileCheck(infile, outfile) == 1) {
     fprintf(stderr, "Error: file check failed.\n");
-    exit(1);
+    err_code = errno;
+    goto cleanup;
   }
 
   if(strcmp(infile, std_def) != 0) {
     //stdin will not be used
-    //perhaps we dup to save the desc. then reassign.
+    //perhaps we dup to save the desc. then reassign.a
     if((fin = open(infile, O_RDONLY)) >= 0) {
       //fin returned correctly, close current stdin, reassign to fin
-      close(STDIN_FILENO);
-      dup(fin);
     } else {
       fprintf(stderr, "Error: Bad input file name.\n");
-      exit(1);
+      err_code = errno;
+      goto cleanup;
     }
+  } else {
+    fin = fileno(stdin);
   }
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
     if((fout = open(outfile, O_RDWR | O_CREAT, 0666)) >= 0) {
-      close(STDOUT_FILENO);
-      dup(fout);
+
     } else {
         fprintf(stderr, "Error: Bad output file name.\n");
-        exit(1);
+        err_code = errno;
+        goto cleanup;
     }
+  } else {
+    fout = fileno(stdout);
   }
 
   /*
   COPY file
   copy from input file to a temporary file, confirm the file successfully finished, move the file to the appropriate name
   */
-  if(performCipher(buff, (eflag == 1) ? 1: 0, getpagesize(), key, temp_buf) != 0) {
+  if(performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, fin, fout) != 0) {
       //if not zero, then an error. handle em
+      goto cleanup;
   }
   /* successfully run */
-  close(STDIN_FILENO);
-  close(STDOUT_FILENO);
-  exit(0);
+  cleanup:
+    if(temp_buf) {
+      free(temp_buf);
+    }
+    close(fin);
+    close(fout);
+    exit(err_code);
 
   //error checking, ENOMEM, EIO,
   //ENOSPC, ENOQUOTA
