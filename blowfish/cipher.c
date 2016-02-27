@@ -8,7 +8,7 @@
 #include <errno.h>
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
-static char PROMPT_PASS[] = "Please enter a password: \n";
+static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!): \n";
 
 /*
 print_help - helper method to print the usage string
@@ -34,7 +34,7 @@ int fileCheck(char* file1, char* file2) {
   //case where file2 doesn't exist yet, we just need to know that file1 is a regular file
   if(stat(file2, &f2) != 0) {
     if((S_ISREG(f1.st_mode) == 0)) {
-      fprintf(stderr, "Error: I111231nput file does not exist");
+      fprintf(stderr, "Error: Input file name is not regular");
       return 1;
     } else {
       return 0;
@@ -49,7 +49,7 @@ int fileCheck(char* file1, char* file2) {
   //error check, confirm that files are unique and not symlinks of another file
   //confirm file1 (input file is infact a file)
   if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
-    fprintf(stderr, "Error: Input file does not exist22");
+    fprintf(stderr, "Error: Input file does not exist");
     return 1;
   } else {
     return 0;
@@ -97,16 +97,18 @@ int performCipher(int flag, int pageSize, unsigned char* password, int inFile, i
       goto clean;
     }
     else {//bad malloc
-
       if(flag == 1) {
-          fprintf(stderr, "fuck off you cunt\n");
           BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_ENCRYPT);
       } else {
           BF_cfb64_encrypt(buffer, cipherBuffer, r, &key, iv, &n, BF_DECRYPT);
       }
     }
     //finally
-    write(outFile, cipherBuffer, r); //error check this hard
+    if(write(outFile, cipherBuffer, r) == -1) {
+      //error, set errno break out of read write
+      err = errno;
+      goto clean;
+    } //error check this hard
     free(cipherBuffer);
     cipherBuffer = NULL;
   }//white read success
@@ -127,17 +129,17 @@ int main(int argc, char **argv)
   int c, err = 0;
   int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 1;
   char infile[64], outfile[64];
-  //char tempFileName[] = "CipherTemporary.txt";
+  char tempFileName[] = "CipherTemporary.txt";
+  char outFileRename[] = "OLD(Cipher)-";
+  char* outRenameBuffer;
   char std_def[] = "-";
   int fin = 0, fout = 0;
   int err_code = 0;
   char* temp_pass = NULL;
 
-  printf("%d\n", getpagesize());
-
   /* a temp buffer to read user input (the user's password) */
   unsigned char* temp_buf;
-
+  //getopt, standard stuff flags devhp:
   while((c = getopt(argc, argv, "devhp:")) != -1) {
     switch(c) {
       case 'd':
@@ -178,7 +180,6 @@ int main(int argc, char **argv)
   strcpy(outfile, argv[optind]);
 
   if(fileCheck(infile, outfile) == 1) {
-    fprintf(stderr, "Error: file check failed.\n");
     err_code = errno;
     goto cleanup;
   }
@@ -199,7 +200,7 @@ int main(int argc, char **argv)
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
-    if((fout = open(outfile, O_RDWR | O_CREAT, 0666)) >= 0) {
+    if((fout = open(tempFileName, O_RDWR | O_CREAT, 0666)) >= 0) {
 
     } else {
         fprintf(stderr, "Error: Bad output file name.\n");
@@ -209,15 +210,40 @@ int main(int argc, char **argv)
   } else {
     fout = fileno(stdout);
   }
-
+  err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, fin, fout);
+  if(err_code != 0) {
+      //if not zero, then an error. handle them
+      //TODO - handle all the error codes appropriately
+      switch(err_code) {
+        case ENOSPC: //no space
+          err_code = unlink(tempFileName);
+          break;
+        case EIO:
+          break;
+        case ENOMEM:
+          break;
+        default:
+          break;
+      }
+      goto cleanup;
+  }
   /*
   COPY file
   copy from input file to a temporary file, confirm the file successfully finished, move the file to the appropriate name
+  if the outfile already exists, I rename it to a file
   */
-  if(performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, fin, fout) != 0) {
-      //if not zero, then an error. handle em
-      goto cleanup;
+  if(access(outfile, F_OK) == 0) {
+    outRenameBuffer = malloc(sizeof(char) * (strlen(outfile) + strlen(outFileRename)));
+    strcat(outRenameBuffer, outFileRename);
+    strcat(outRenameBuffer, outfile);
+    unlink(outRenameBuffer);
+    rename(outfile, outRenameBuffer);
+    unlink(outfile);
+    free(outRenameBuffer);
   }
+  rename(tempFileName, outfile);
+  unlink(tempFileName);
+
   /* successfully run */
   cleanup:
     if(temp_buf) {
