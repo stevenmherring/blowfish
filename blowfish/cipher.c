@@ -6,6 +6,8 @@
 #include <fcntl.h>
 #include "blowfish.h"
 #include <errno.h>
+#include "builds.h"
+#define VERS 1.0
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
 static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!): \n";
@@ -150,6 +152,7 @@ int main(int argc, char **argv)
         break;
       case 'v':
         vflag = 1;
+        printf("myprog version %f build number %d\n", VERS, BUILDS);
         break;
       case 'h':
         hflag = 1;
