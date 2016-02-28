@@ -7,6 +7,7 @@
 #include "blowfish.h"
 #include <errno.h>
 #include "builds.h"
+#include <termios.h>
 #define VERS 1.0
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
@@ -135,6 +136,7 @@ int performCipher(int flag, int pageSize, unsigned char* password) {
     return err;
 }//performCipher
 
+
 int main(int argc, char **argv)
 {
   extern char *optarg;
@@ -143,8 +145,8 @@ int main(int argc, char **argv)
   int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 1;
   char infile[64], outfile[64];
   char tempFileName[] = "CipherTemporary.txt";
-  char outFileRename[] = "OLD(Cipher)-";
-  char* outRenameBuffer;
+  //char outFileRename[] = "OLD(Cipher)-";
+  //char* outRenameBuffer;
   char std_def[] = "-";
   int fin = 0, fout = 0;
   int err_code = 0;
@@ -180,6 +182,10 @@ int main(int argc, char **argv)
         break;
     }
   }//while
+  if(hflag == 1) {
+    print_help(argv[0]);
+    exit(0);
+  }
   //argument error checking
   if((dflag == 1 && eflag == 1) || (dflag == 0 && eflag == 0) || ((optind +2) > argc) || err) {
     print_help(argv[0]);
@@ -188,6 +194,7 @@ int main(int argc, char **argv)
   /* Copy the argument file names into designated locations.*/
   if(pflag) {
     temp_pass = getpass(PROMPT_PASS);
+    temp_buf = calloc(1, sizeof(temp_pass));
     strcpy((char *)temp_buf, temp_pass);
   }
   strcpy(infile, argv[optind++]);
@@ -224,16 +231,36 @@ int main(int argc, char **argv)
     }
   }
   err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf);
+  /*
+  Check return codes, handle errors
+  */
   if(err_code != 0) {
       //if not zero, then an error. handle them
       //TODO - handle all the error codes appropriately
       switch(err_code) {
         case ENOSPC: //no space
-          err_code = unlink(tempFileName);
+          fprintf(stderr, "Error: Not enough space available. %s", (eflag == 1) ? "Encrypt failed\n" : "Decrypt failed\n");
+          if(access(tempFileName, F_OK) == 0) {
+            err_code = unlink(tempFileName);
+          }
           break;
         case EIO:
+          fprintf(stderr, "Error: An error occured during input/output operations. %s", (eflag == 1) ? "Encrypt failed\n" : "Decrypt failed\n");
+          if(access(tempFileName, F_OK) == 0) {
+            err_code = unlink(tempFileName);
+          }
           break;
         case ENOMEM:
+          fprintf(stderr, "Error: Insufficient memory. %s", (eflag == 1) ? "Encrypt failed\n" : "Decrypt failed\n");
+          if(access(tempFileName, F_OK) == 0) {
+            err_code = unlink(tempFileName);
+          } //else the file wasn't created yet, no need to unlink
+          break;
+        case EDQUOT:
+          fprintf(stderr, "Error: Quota fail %s", (eflag == 1) ? "Encrypt failed\n" : "Decrypt failed\n");
+          if(access(tempFileName, F_OK) == 0) {
+            err_code = unlink(tempFileName);
+          }
           break;
         default:
           break;
@@ -243,8 +270,8 @@ int main(int argc, char **argv)
   /*
   COPY file
   copy from input file to a temporary file, confirm the file successfully finished, move the file to the appropriate name
-  if the outfile already exists, I rename it to a file
-  */
+  if the outfile already exists, I rename it to a file, if i want to keep this, I need to error check it like verything else.
+
   if(access(outfile, F_OK) == 0) {
     outRenameBuffer = malloc(sizeof(char) * (strlen(outfile) + strlen(outFileRename)));
     strcat(outRenameBuffer, outFileRename);
@@ -254,6 +281,8 @@ int main(int argc, char **argv)
     unlink(outfile);
     free(outRenameBuffer);
   }
+  */
+  //rename temp to outfile TODO: Error check this
   rename(tempFileName, outfile);
   unlink(tempFileName);
 
@@ -261,6 +290,9 @@ int main(int argc, char **argv)
   cleanup:
     if(temp_buf) {
       free(temp_buf);
+    }
+    if(temp_pass) {
+      free(temp_pass);
     }
     close(fin);
     close(fout);
