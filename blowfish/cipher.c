@@ -153,7 +153,7 @@ int main(int argc, char **argv)
   char* temp_pass = NULL;
 
   /* a temp buffer to read user input (the user's password) */
-  unsigned char* temp_buf;
+  unsigned char* temp_buf = NULL;
   //getopt, standard stuff flags devhp:
   while((c = getopt(argc, argv, "devhp:")) != -1) {
     switch(c) {
