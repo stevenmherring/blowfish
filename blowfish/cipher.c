@@ -29,19 +29,29 @@ void print_help(char* name) {
 */
 int fileCheck(char* file1, char* file2) {
   struct stat f1, f2;
-  if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
-      fprintf(stderr, "Error: Input file does not exist");
-      return 1;
-  }
+  if(strcmp(file1, "-") == 0) {
+    return 0;
+  } else if(strcmp(file2, "-") == 0) {
+    if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
+        fprintf(stderr, "Error: Input file does not exist");
+        return 1;
+      } else {
+        return 0;
+      }
+  } else {
+    if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
+        fprintf(stderr, "Error: Input file does not exist");
+        return 1;
+      }
   //case where file2 doesn't exist yet, we just need to know that file1 is a regular file
-  if(stat(file2, &f2) != 0) {
-    if((S_ISREG(f1.st_mode) == 0)) {
-      fprintf(stderr, "Error: Input file name is not regular");
-      return 1;
-    } else {
-      return 0;
+    if(stat(file2, &f2) != 0) {
+      if((S_ISREG(f1.st_mode) == 0)) {
+        fprintf(stderr, "Error: Input file name is not regular");
+        return 1;
+      } else {
+        return 0;
+      }
     }
-  }
 
   //if((access(file2,F_OK) == -1) && (f1.st_mode & S_IFMT) == S_IFREG) {
   //  fprintf(stdout, "Error: 11111");
@@ -50,12 +60,13 @@ int fileCheck(char* file1, char* file2) {
 
   //error check, confirm that files are unique and not symlinks of another file
   //confirm file1 (input file is infact a file)
-  if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
-    fprintf(stderr, "Error: Input file does not exist");
-    return 1;
-  } else {
-    return 0;
-  }
+    if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
+      fprintf(stderr, "Error: Input file does not exist");
+      return 1;
+    } else {
+      return 0;
+    }
+  }//else
 }//fileDiff
 
 /*
@@ -67,7 +78,7 @@ param4 - BF_KEY: key
 param5 - char*: password
 return - int: 0 for success, ~0 for failure
 */
-int performCipher(int flag, int pageSize, unsigned char* password, int inFile, int outFile) {
+int performCipher(int flag, int pageSize, unsigned char* password) {
   unsigned char iv[8];		/* Initialization Vector */
   int n = 0;			/* internal blowfish variables */
   int r = 0, err = 0;
@@ -89,7 +100,7 @@ int performCipher(int flag, int pageSize, unsigned char* password, int inFile, i
     goto clean;
   }
   BF_set_key(&key, sizeof(password), password);
-  while((r = read(inFile, buffer, pageSize)) > 0) {
+  while((r = read(STDIN_FILENO, buffer, pageSize)) > 0) {
     if((cipherBuffer = calloc(1, r)) == NULL) {
       fprintf(stderr, "Error: Calloc Failure.");
       free(buffer);
@@ -106,7 +117,7 @@ int performCipher(int flag, int pageSize, unsigned char* password, int inFile, i
       }
     }
     //finally
-    if(write(outFile, cipherBuffer, r) == -1) {
+    if(write(STDOUT_FILENO, cipherBuffer, r) == -1) {
       //error, set errno break out of read write
       err = errno;
       goto clean;
@@ -192,28 +203,27 @@ int main(int argc, char **argv)
     //perhaps we dup to save the desc. then reassign.a
     if((fin = open(infile, O_RDONLY)) >= 0) {
       //fin returned correctly, close current stdin, reassign to fin
+      dup2(fin, STDIN_FILENO);
+      close(fin);
     } else {
       fprintf(stderr, "Error: Bad input file name.\n");
       err_code = errno;
       goto cleanup;
     }
-  } else {
-    fin = fileno(stdin);
   }
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
     if((fout = open(tempFileName, O_RDWR | O_CREAT, 0666)) >= 0) {
-
+      dup2(fout, STDOUT_FILENO);
+      close(fout);
     } else {
         fprintf(stderr, "Error: Bad output file name.\n");
         err_code = errno;
         goto cleanup;
     }
-  } else {
-    fout = fileno(stdout);
   }
-  err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, fin, fout);
+  err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf);
   if(err_code != 0) {
       //if not zero, then an error. handle them
       //TODO - handle all the error codes appropriately
