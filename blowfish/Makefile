@@ -19,4 +19,4 @@ cipher: cipher.o bf_cfb64.o bf_enc.o bf_skey.o
 	$(CC) -o cipher cipher.o bf_cfb64.o bf_enc.o bf_skey.o
 
 clean:
-	$(RM) count *.o *~
+	$(RM) *.o *~
