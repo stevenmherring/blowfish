@@ -223,7 +223,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "Error: Passwords do no match\n");
       goto cleanup;
     }
-  //    memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
+   memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
   }//if p and s flag are set
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
@@ -232,7 +232,6 @@ int main(int argc, char **argv)
     err_code = errno;
     goto cleanup;
   }
-
   if(strcmp(infile, std_def) != 0) {
     //stdin will not be used
     //perhaps we dup to save the desc. then reassign.a
@@ -308,11 +307,8 @@ int main(int argc, char **argv)
 
   /* successfully run */
   cleanup:
-    if(temp_buf != NULL) {
+    if(temp_buf) {
       free(temp_buf);
-    }
-    if(temp_pass != NULL) {
-      //free(temp_pass);
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
