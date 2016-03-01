@@ -312,7 +312,7 @@ int main(int argc, char **argv)
       free(temp_buf);
     }
     if(temp_pass != NULL) {
-      free(temp_pass);
+      //free(temp_pass);
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
