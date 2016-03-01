@@ -206,7 +206,7 @@ int main(int argc, char **argv)
     }
     strcpy((char *)temp_buf, temp_pass);
     if(sflag) {
-      temp_pass = NULL;
+      temp_pass = NUL
       temp_pass = getpass(PROMPT_PASS_SECURE);
       if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
         //strings dont match, error and quit
@@ -214,7 +214,7 @@ int main(int argc, char **argv)
         goto cleanup;
       }
   }
-    memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
+    //memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
   } //!pflag
 
   if(pflag && sflag) {
@@ -224,7 +224,7 @@ int main(int argc, char **argv)
       fprintf(stderr, "Error: Passwords do no match\n");
       goto cleanup;
     }
-      memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
+  //    memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
   }//if p and s flag are set
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
