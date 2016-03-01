@@ -145,7 +145,6 @@ int main(int argc, char **argv)
   int fin = 0, fout = 0;
   int err_code = 0;
   char* temp_pass = NULL;
-  char* temp_pass2 = NULL;
 
   /* a temp buffer to read user input (the user's password) */
   unsigned char* temp_buf = NULL;
@@ -316,11 +315,8 @@ int main(int argc, char **argv)
     if(temp_pass) {
       free(temp_pass);
     }
-    if(temp_pass2) {
-      free(temp_pass2);
-    }
-    //close(STDIN_FILENO);
-  //  close(STDOUT_FILENO);
+    close(STDIN_FILENO);
+    close(STDOUT_FILENO);
     exit(err_code);
 
 }
