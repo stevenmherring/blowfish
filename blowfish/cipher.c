@@ -206,7 +206,6 @@ int main(int argc, char **argv)
     }
      strcpy((char *)temp_buf, temp_pass);
     if(sflag) {
-      temp_pass = NULL;
       temp_pass = getpass(PROMPT_PASS_SECURE);
       if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
         //strings dont match, error and quit
@@ -309,10 +308,10 @@ int main(int argc, char **argv)
 
   /* successfully run */
   cleanup:
-    if(temp_buf) {
+    if(temp_buf != NULL) {
       free(temp_buf);
     }
-    if(temp_pass) {
+    if(temp_pass != NULL) {
       free(temp_pass);
     }
     close(STDIN_FILENO);
