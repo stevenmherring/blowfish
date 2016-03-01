@@ -204,7 +204,7 @@ int main(int argc, char **argv)
       err_code = errno;
       goto cleanup;
     }
-    strcpy((char *)temp_buf, temp_pass);
+     //strcpy((char *)temp_buf, temp_pass);
     if(sflag) {
       temp_pass = NULL;
       temp_pass = getpass(PROMPT_PASS_SECURE);
@@ -213,7 +213,7 @@ int main(int argc, char **argv)
         fprintf(stderr, "Error: Passwords do no match\n");
         goto cleanup;
       }
-  }
+    }
     //memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
   } //!pflag
 
