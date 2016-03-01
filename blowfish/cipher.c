@@ -12,6 +12,7 @@
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
 static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!): \n";
+static char PROMPT_PASS_SECURE[] = "Please re-enter your password.\n";
 
 /*
 print_help - helper method to print the usage string
@@ -135,7 +136,7 @@ int main(int argc, char **argv)
   extern char *optarg;
   extern int optind;
   int c, err = 0;
-  int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 1;
+  int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 0, sflag = 0;
   char infile[64], outfile[64];
   char tempFileName[] = "CipherTemporary.txt";
   //char outFileRename[] = "OLD(Cipher)-";
@@ -144,21 +145,25 @@ int main(int argc, char **argv)
   int fin = 0, fout = 0;
   int err_code = 0;
   char* temp_pass = NULL;
+  char* temp_pass2 = NULL;
 
   /* a temp buffer to read user input (the user's password) */
   unsigned char* temp_buf = NULL;
   //getopt, standard stuff flags devhp:
-  while((c = getopt(argc, argv, "devhp:")) != -1) {
+  while((c = getopt(argc, argv, "dsevhp:")) != -1) {
     switch(c) {
       case 'd':
         dflag = 1;
+        break;
+      case 's':
+        sflag = 1;
         break;
       case 'e':
         eflag = 1;
         break;
       case 'v':
         vflag = 1;
-        printf("myprog version %f build number %d\n", VERS, BUILDS);
+        printf("Cipher Version %f \nBuild number %d\n", VERS, BUILDS);
         break;
       case 'h':
         hflag = 1;
@@ -166,10 +171,12 @@ int main(int argc, char **argv)
       case 'p':
         //strcpy(temp_buf, optarg); //TODO: is strcpy the best choice????
         //we need to cast to char * since blowfish using unsigned char[]
-        pflag = 0;
-        temp_buf = calloc(1, sizeof(temp_pass));
+        pflag = 1;
+        temp_buf = calloc(1, sizeof(optarg));
         if(temp_buf == NULL) {
           fprintf(stderr, "Error: Calloc Faileld\n");
+          err_code = errno;
+          goto cleanup;
         }
         strcpy((char *)temp_buf, optarg);
         break;
@@ -180,22 +187,46 @@ int main(int argc, char **argv)
   }//while
   if(hflag == 1) {
     print_help(argv[0]);
-    exit(0);
+    err_code = 0;
+    goto cleanup;
   }
   //argument error checking
-  if((dflag == 1 && eflag == 1) || (dflag == 0 && eflag == 0) || ((optind +2) > argc) || err) {
+  if((dflag == 1 && eflag == 1) || (dflag == 0 && eflag == 0) || ((optind + 2) != argc) || err) {
     print_help(argv[0]);
-    exit(1);
+    err_code = 1;
+    goto cleanup;
   }
   /* Copy the argument file names into designated locations.*/
-  if(pflag) {
+  if(!pflag) {
     temp_pass = getpass(PROMPT_PASS);
     temp_buf = calloc(1, sizeof(temp_pass));
     if(temp_buf == NULL) {
       fprintf(stderr, "Error: Calloc Faileld\n");
+      err_code = errno;
+      goto cleanup;
     }
     strcpy((char *)temp_buf, temp_pass);
+    if(sflag) {
+      temp_pass = NULL;
+      temp_pass = getpass(PROMPT_PASS_SECURE);
+      if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
+        //strings dont match, error and quit
+        fprintf(stderr, "Error: Passwords do no match\n");
+        goto cleanup;
+      }
   }
+    memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
+  } //!pflag
+
+  if(pflag && sflag) {
+    temp_pass = getpass(PROMPT_PASS_SECURE);
+    if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
+      //strings dont match, error and quit
+      fprintf(stderr, "Error: Passwords do no match\n");
+      goto cleanup;
+    }
+      memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
+  }//if p and s flag are set
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
 
@@ -284,6 +315,9 @@ int main(int argc, char **argv)
     }
     if(temp_pass) {
       free(temp_pass);
+    }
+    if(temp_pass2) {
+      free(temp_pass2);
     }
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
