@@ -11,8 +11,8 @@
 #define VERS 1.0
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
-static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!): \n";
-static char PROMPT_PASS_SECURE[] = "Please re-enter your password.\n";
+static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!, max length 256): ";
+static char PROMPT_PASS_SECURE[] = "Please re-enter your password.";
 
 /*
 print_help - helper method to print the usage string
@@ -73,17 +73,17 @@ param2 - int: flag for encryption/decryption - 1 for encryption, 0 for decryptio
 param3 - int: pagesize
 return - int: 0 for success, ~0 for failure
 */
-int performCipher(int flag, int pageSize, unsigned char* password) {
+int performCipher(int flag, int pageSize, unsigned char* password, int passLen) {
   unsigned char iv[8];		/* Initialization Vector */
   int n = 0;			/* internal blowfish variables */
   int r = 0, err = 0;
-  void* buffer = NULL;
-  void* cipherBuffer = NULL;
+  unsigned char* buffer = NULL;
+  unsigned char* cipherBuffer = NULL;
   /* define a structure to hold the key */
   BF_KEY key;
   /* fill the IV with zeros (or any other fixed data) */
   memset(iv, 0, 8);
-  if((buffer = malloc(pageSize))== NULL) {
+  if((buffer = malloc(sizeof(char) * pageSize))== NULL) {
     fprintf(stderr, "Error: Malloc Failure.");
     err = errno;
     goto clean;
@@ -93,9 +93,9 @@ int performCipher(int flag, int pageSize, unsigned char* password) {
     err = 1;
     goto clean;
   }
-  BF_set_key(&key, sizeof(password), password);
+  BF_set_key(&key, passLen, password);
   while((r = read(STDIN_FILENO, buffer, pageSize)) > 0) {
-    if((cipherBuffer = malloc(r)) == NULL) {
+    if((cipherBuffer = malloc(sizeof(char) * r)) == NULL) {
       fprintf(stderr, "Error: Malloc Failure.");
       free(buffer);
       if(cipherBuffer) {
@@ -136,11 +136,10 @@ int main(int argc, char **argv)
   extern char *optarg;
   extern int optind;
   int c, err = 0;
+  int maxLen = 256;
   int dflag = 0, eflag = 0, vflag = 0, hflag = 0, pflag = 0, sflag = 0;
   char infile[64], outfile[64];
   char tempFileName[] = "CipherTemporary.txt";
-  //char outFileRename[] = "OLD(Cipher)-";
-  //char* outRenameBuffer;
   char std_def[] = "-";
   int fin = 0, fout = 0;
   int err_code = 0;
@@ -171,13 +170,14 @@ int main(int argc, char **argv)
         //strcpy(temp_buf, optarg); //TODO: is strcpy the best choice????
         //we need to cast to char * since blowfish using unsigned char[]
         pflag = 1;
-        temp_buf = calloc(1, sizeof(optarg));
+        temp_buf = calloc(maxLen, sizeof(char));
         if(temp_buf == NULL) {
           fprintf(stderr, "Error: Calloc Faileld\n");
           err_code = errno;
           goto cleanup;
         }
-        strcpy((char *)temp_buf, optarg);
+      //  strcpy((char *)temp_buf, optarg);
+        memcpy((char *)temp_buf, optarg, strlen(optarg));
         break;
       case '?':
         err = 1;
@@ -198,13 +198,14 @@ int main(int argc, char **argv)
   /* Copy the argument file names into designated locations.*/
   if(!pflag) {
     temp_pass = getpass(PROMPT_PASS);
-    temp_buf = calloc(1, sizeof(temp_pass));
+    temp_buf = calloc(maxLen, sizeof(char));
     if(temp_buf == NULL) {
       fprintf(stderr, "Error: Calloc Faileld\n");
       err_code = errno;
       goto cleanup;
     }
-     strcpy((char *)temp_buf, temp_pass);
+     //strcpy((char *)temp_buf, temp_pass);
+     memcpy((char *)temp_buf, temp_pass, strlen(temp_pass));
     if(sflag) {
       temp_pass = getpass(PROMPT_PASS_SECURE);
       if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
@@ -265,7 +266,7 @@ int main(int argc, char **argv)
         goto cleanup;
     }
   }
-  err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf);
+  err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, maxLen);
   /*
   Check return codes, handle errors
   */
