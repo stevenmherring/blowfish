@@ -319,8 +319,8 @@ int main(int argc, char **argv)
     if(temp_pass2) {
       free(temp_pass2);
     }
-    close(STDIN_FILENO);
-    close(STDOUT_FILENO);
+    //close(STDIN_FILENO);
+  //  close(STDOUT_FILENO);
     exit(err_code);
 
 }
