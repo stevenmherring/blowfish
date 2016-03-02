@@ -33,20 +33,24 @@ int fileCheck(char* file1, char* file2) {
     return 0;
   } else if(strcmp(file2, "-") == 0) {
     if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
-        fprintf(stderr, "Error: Input file does not exist");
+        fprintf(stderr, "Error: Input file does not exist\n");
         return 1;
       } else {
+        if(S_ISREG(f1.st_mode) == 0){
+          fprintf(stderr, "Error: Input file is not regular\n");
+          return 1;
+        }
         return 0;
       }
   } else {
     if(stat(file1, &f1) != 0 || (access(file1, F_OK ) == -1)) {
-        fprintf(stderr, "Error: Input file does not exist");
+        fprintf(stderr, "Error: Input file does not exist\n");
         return 1;
       }
   //case where file2 doesn't exist yet, we just need to know that file1 is a regular file
     if(stat(file2, &f2) != 0) {
       if((S_ISREG(f1.st_mode) == 0)) {
-        fprintf(stderr, "Error: Input file name is not regular");
+        fprintf(stderr, "Error: Input file name is not regular\n");
         return 1;
       } else {
         return 0;
@@ -55,9 +59,13 @@ int fileCheck(char* file1, char* file2) {
   //error check, confirm that files are unique and not symlinks of another file
   //confirm file1 (input file is infact a file)
     if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
-      fprintf(stderr, "Error: Input and Output files must not be the same.");
+      fprintf(stderr, "Error: Input and Output files must not be the same.\n");
       return 1;
     } else {
+      if(S_ISREG(f2.st_mode) == 0){
+        fprintf(stderr, "Error: Output file is not regular\n");
+        return 1;
+      }
       return 0;
     }
   }//else
@@ -220,7 +228,8 @@ int main(int argc, char **argv)
     temp_pass = getpass(PROMPT_PASS_SECURE);
     if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
       //strings dont match, error and quit
-      fprintf(stderr, "Error: Passwords do no match\n");
+      fprintf(stderr, "Error: Passwords do not match\n");
+      err_code = 1;
       goto cleanup;
     }
    memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
