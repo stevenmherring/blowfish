@@ -203,8 +203,9 @@ int main(int argc, char **argv)
       err_code = errno;
       goto cleanup;
     }
-     //strcpy((char *)temp_buf, temp_pass);
+    //copy to buffer
      memcpy((char *)temp_buf, temp_pass, strlen(temp_pass));
+    //if !pflag, && sflag
     if(sflag) {
       temp_pass = getpass(PROMPT_PASS_SECURE);
       if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
@@ -215,7 +216,7 @@ int main(int argc, char **argv)
     }
     memset(temp_pass, 0, strlen(temp_pass)); //remove clear-text password from program space
   } //!pflag
-
+  //pflag && sflag
   if(pflag && sflag) {
     temp_pass = getpass(PROMPT_PASS_SECURE);
     if(strcmp(temp_pass, (char *) temp_buf) != 0 ) {
@@ -227,7 +228,7 @@ int main(int argc, char **argv)
   }//if p and s flag are set
   strcpy(infile, argv[optind++]);
   strcpy(outfile, argv[optind]);
-
+  //call fileCheck on both files, make sure they are accessible etc.
   if(fileCheck(infile, outfile) == 1) {
     err_code = errno;
     goto cleanup;
@@ -248,7 +249,7 @@ int main(int argc, char **argv)
       err_code = errno;
       goto cleanup;
     }
-  }
+  }//if infile == -
   if(strcmp(outfile, std_def) != 0) {
     //stdout will not be used for the output
     //perhaps we dup to save the desc. then reassign.
@@ -264,7 +265,7 @@ int main(int argc, char **argv)
         err_code = errno;
         goto cleanup;
     }
-  }
+  }//if outfile == -
   err_code = performCipher((eflag == 1) ? 1: 0, getpagesize(), temp_buf, maxLen);
   /*
   Check return codes, handle errors
