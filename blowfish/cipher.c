@@ -58,7 +58,6 @@ int fileCheck(char* file1, char* file2) {
       fprintf(stderr, "Error: Input and Output files must not be the same.");
       return 1;
     } else {
-      if(f1.)
       return 0;
     }
   }//else
