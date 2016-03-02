@@ -11,9 +11,8 @@
 #define VERS 1.0
 /* Pre-Defined strings - Usage, error messages, etc. */
 static char usage[] = "usage: %s [-devh] [-p PASSWD] infile outfile\n";
-static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!, max length 256): ";
+static char PROMPT_PASS[] = "Please enter an encryption password (you will need this for decryption, save it!, max length 256 characters): ";
 static char PROMPT_PASS_SECURE[] = "Please re-enter your password.";
-
 /*
 print_help - helper method to print the usage string
 param1 - char* name
@@ -22,7 +21,6 @@ return - void
 void print_help(char* name) {
   fprintf(stderr, usage, name);
 }//print_help
-
 /*
   fileCheck - check whether two file names are linked to the same file
   param1 - file name
@@ -54,18 +52,19 @@ int fileCheck(char* file1, char* file2) {
         return 0;
       }
     }
-
   //error check, confirm that files are unique and not symlinks of another file
   //confirm file1 (input file is infact a file)
     if((f1.st_dev == f2.st_dev && f1.st_ino == f2.st_ino) || (S_ISREG(f1.st_mode) == 0)) {
       fprintf(stderr, "Error: Input and Output files must not be the same.");
       return 1;
     } else {
+      if(f1.)
       return 0;
     }
   }//else
-}//fileDiff
 
+
+}//fileDiff
 /*
 performCipher - performs the cipher function
 param1 - char*: buffer to use for translation
@@ -305,7 +304,6 @@ int main(int argc, char **argv)
     //error on unlink
     strerror(errno);
   }
-
   /* successfully run */
   cleanup:
     if(temp_buf) {
@@ -314,5 +312,4 @@ int main(int argc, char **argv)
     close(STDIN_FILENO);
     close(STDOUT_FILENO);
     exit(err_code);
-
-}
+}//main

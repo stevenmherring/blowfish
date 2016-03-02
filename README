@@ -1,1 +1,23 @@
-Empty template and README for HW1
+All functionality implemented. 
+
+All known errors checked for and handled with custom output to stderror as well as strerror(errno). Read and Write errors are all checked immediately after returning from performCipher function, this function is built to return as an error in the case of failure so we can handle the errors outside of the function itself. I find this slightly more portable, in the case where you would want to handle ENOMEM differently (as discussed in class) the function itself will not have to be modified, just it’s harness.
+
+Used getopts in the most standard, and introduced way via their way documentation.
+
+Maximum allowed password length is 256 characters, we must choose a permanent zero’d out buffer size for the password length due to  how blowfish works internally. If we dynamically choose the buffer size, we allow decryption to work with incorrect passwords. For example, our encryption password is ‘blowfish’ we would then be able to decrypt with the password ‘blowfishblowfish’.  
+
+FileCheck function checks the file types of the input file, confirming it’s a regular file and accessible using access. From there we determine if the output file exists, if it does the we compare it’s device and i node to input files to assure we are not trying to copy in place. If that is valid, we return and continue in the program, else fail.	
+
+If we pass file check we can safely open both files, including our temporary file to write to.
+
+PerformCipher function is pretty much just a while loop, it reads up to the systems pagesize in bytes and allocates memory in a new buffer for the number of bytes read, then, depending on the flag passed in we encrypt/decrypt the data from the readin buffer to the new cipherBuffer, then write the data from cipherBuffer to a temporary file. We repeat this until the input file is fully read and exit successfully. at any time if an I/O error occurs we return the error code to main function call.
+
+After successful completion, we check for all error codes, if none we move to a cleanup stage, freeing any space that may be unfree at this point then close the file descriptors and exit the program safely.
+
+———————Caveat
+
+Due to shared file system, you must run ‘rm *.o’ in bash before using ‘make’ on the freebsd system, this is to counter ELF coding error.
+
+————Bonuses 
+
+Bonus part 1 implemented. Specific case -sp will take the password as a command argument and ask for a re-enter when the program starts. All other cases it asks twice. In the latter case use two char arrays during the password retrieval procedure, I memcpy the first to a primary buffer and load the second into the secondary buffer and compare the two passwords. Passwords are retrieved using getPass().
